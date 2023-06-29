@@ -1,4 +1,4 @@
-import { ChangeEvent, useMemo, useState, FC, useContext } from 'react';
+import { ChangeEvent, useMemo, useState, FC, useContext, useEffect } from 'react';
 import { GetServerSideProps } from 'next'
 
 import { capitalize, Button, Card, CardActions, CardContent, CardHeader, FormControl, FormControlLabel, FormLabel, Grid, Radio, RadioGroup, TextField, IconButton } from '@mui/material';
@@ -11,8 +11,9 @@ import { Layout } from '../../components/layouts/Layout';
 import { Entry, EntryStatus } from '@/interfaces';
 import { EntriesContext } from '@/context/entries';
 import { dateFunctions } from '@/utils';
+import { useRouter } from 'next/router';
 
-const validStatus: EntryStatus[] = [ 'pending', 'in-progress', 'finished' ]; 
+const validStatus: EntryStatus[] = ['pending', 'in-progress', 'finished'];
 
 interface Props {
   entry: Entry
@@ -20,50 +21,57 @@ interface Props {
 
 
 
-export const EntryPage:FC<Props> = ({ entry }) => {
+export const EntryPage: FC<Props> = ({ entry }) => {
 
-  const { updateEntry } = useContext( EntriesContext )
- 
-  const [ inputValue, setInputValue ]= useState(entry.description);
-  const [ status, setStatus ] = useState<EntryStatus>(entry.status);
-  const [ touched, setTouched ] = useState(false);
+  const router = useRouter()
 
-  const isNotValid = useMemo(() => inputValue.length <= 0 &&  touched, [inputValue, touched])
+  const { updateEntry, deleteEntry } = useContext(EntriesContext)
 
-  
-  const OnInputValueChanged = ( event: ChangeEvent<HTMLInputElement> ) => {
-    setInputValue( event.target.value ); 
+  const [inputValue, setInputValue] = useState(entry.description);
+  const [status, setStatus] = useState<EntryStatus>(entry.status);
+  const [touched, setTouched] = useState(false);
+
+  const isNotValid = useMemo(() => inputValue.length <= 0 && touched, [inputValue, touched])
+
+
+  const OnInputValueChanged = (event: ChangeEvent<HTMLInputElement>) => {
+    setInputValue(event.target.value);
   }
 
-  const onStatusChanged = ( event: ChangeEvent<HTMLInputElement> ) => {
-    setStatus( event.target.value as EntryStatus )    
+  const onStatusChanged = (event: ChangeEvent<HTMLInputElement>) => {
+    setStatus(event.target.value as EntryStatus)
   }
 
   const onSave = () => {
-    if( inputValue.trim().length ===  0) return;
+    if (inputValue.trim().length === 0) return;
 
     const updatedEntry: Entry = {
       ...entry,
       status,
       description: inputValue,
     }
-    updateEntry( updatedEntry, true );
+    updateEntry(updatedEntry, true);
   }
 
+  const onDelete = () => {
+    deleteEntry(entry._id, true)
+    router.push('/');
+
+  }
 
   return (
-    <Layout title={ inputValue.substring(0,20) + '...' }>
+    <Layout title={inputValue.substring(0, 20) + '...'}>
       <Grid
         container
         justifyContent='center'
         sx={{ mt: 2 }}
       >
-        <Grid item xs={ 12 } sm={ 8 } md={ 6 }>
+        <Grid item xs={12} sm={8} md={6}>
           <Card>
             <CardHeader
-              title={`Entrada: ${ inputValue }`}
-              subheader={`Creada ${ dateFunctions.getFormatDistanceToNow(entry.createdAt) }`}
-             />
+              title={`Entrada: ${inputValue}`}
+              subheader={`Creada ${dateFunctions.getFormatDistanceToNow(entry.createdAt)}`}
+            />
             <CardContent>
               <TextField
                 fullWidth
@@ -71,49 +79,52 @@ export const EntryPage:FC<Props> = ({ entry }) => {
                 autoFocus
                 multiline
                 label='Nueva entrada'
-                value={ inputValue }
-                onChange={ OnInputValueChanged }
-                onBlur={ () => setTouched(true) }
-                helperText= { isNotValid && 'Ingrese un valor' }
-                error={ isNotValid }
+                value={inputValue}
+                onChange={OnInputValueChanged}
+                onBlur={() => setTouched(true)}
+                helperText={isNotValid && 'Ingrese un valor'}
+                error={isNotValid}
                 sx={{ mt: 2, mb: 1 }}
               />
               <FormControl>
                 <FormLabel>Estado:</FormLabel>
                 <RadioGroup
                   row
-                  value={ status }
-                  onChange={ onStatusChanged}
+                  value={status}
+                  onChange={onStatusChanged}
                 >
                   {
-                    validStatus.map( option => (
+                    validStatus.map(option => (
                       <FormControlLabel
                         key={option}
                         value={option}
-                        control={<Radio />} 
-                        label={capitalize(option)}   
-                      />                        
+                        control={<Radio />}
+                        label={capitalize(option)}
+                      />
                     ))
                   }
                 </RadioGroup>
               </FormControl>
-              
-            </CardContent> 
+
+            </CardContent>
             <CardActions>
               <Button
-                startIcon={<SaveOutlinedIcon/>}
+                startIcon={<SaveOutlinedIcon />}
                 variant='contained'
                 fullWidth
-                onClick={ onSave }
-                disabled={ inputValue.length <= 0 }
+                onClick={onSave}
+                disabled={inputValue.length <= 0}
               >
                 Save
-              </Button>  
+              </Button>
             </CardActions>
           </Card>
         </Grid>
       </Grid>
-      <IconButton 
+
+      <IconButton
+
+        onClick={onDelete}
         sx={{
           position: 'fixed',
           bottom: 30,
@@ -121,8 +132,8 @@ export const EntryPage:FC<Props> = ({ entry }) => {
           backgroundColor: 'error.dark'
         }}
       >
-        <DeleteOutlineOutlinedIcon/>
-      </IconButton>            
+        <DeleteOutlineOutlinedIcon />
+      </IconButton>
     </Layout>
   )
 }
@@ -131,16 +142,16 @@ export const EntryPage:FC<Props> = ({ entry }) => {
 // - Only if you need to pre-render a page whose data must be fetched at request time
 
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
-  
+
   const { id } = params as { id: string };
 
 
-  const entry = await dbEntries.getEntryById( id );
+  const entry = await dbEntries.getEntryById(id);
 
-  if ( !entry ) {
+  if (!entry) {
     return {
       redirect: {
-        destination:'/',
+        destination: '/',
         permanent: false
       }
     }
