@@ -3,7 +3,7 @@
 *.bson
 *.dump
 mongo/
-
+.next
 .env
 
 # dependencies
